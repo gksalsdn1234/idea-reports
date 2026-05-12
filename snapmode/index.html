@@ -755,6 +755,22 @@ footer {
   <div class="progress-label" id="prog-label">0 / 8 완료</div>
   <div class="check-list" id="checklist-list"></div>
 
+  <div id="custom-checks"></div>
+
+  <div style="display:flex;gap:.5rem;margin-top:1rem;align-items:center">
+    <input
+      id="new-check-input"
+      type="text"
+      placeholder="직접 항목 추가..."
+      style="flex:1;background:var(--bg2);border:1px solid var(--border2);color:var(--text);font-family:var(--font-mono);font-size:12px;padding:8px 12px;outline:none;border-radius:2px;"
+      onkeydown="if(event.key==='Enter')addCustomCheck()"
+    />
+    <button
+      onclick="addCustomCheck()"
+      style="background:var(--accent);color:var(--bg);font-family:var(--font-mono);font-size:11px;padding:8px 14px;border:none;cursor:pointer;border-radius:2px;letter-spacing:.05em;font-weight:500;"
+    >+ 추가</button>
+  </div>
+
   <div style="margin-top:3rem">
     <div class="section-label" style="margin-bottom:1.5rem">미결 질문</div>
     <div class="q-list">
@@ -820,6 +836,36 @@ checks.forEach((t, i) => {
   };
   list.appendChild(div);
 });
+
+// CUSTOM CHECKLIST
+const customDone = new Set();
+let customCount = 0;
+function addCustomCheck() {
+  const input = document.getElementById('new-check-input');
+  const text = input.value.trim();
+  if (!text) return;
+  const id = 'custom-' + customCount++;
+  const container = document.getElementById('custom-checks');
+  const div = document.createElement('div');
+  div.className = 'check-item';
+  div.innerHTML = `<div class="check-box" id="${id}"></div><div class="check-label">${text}</div>`;
+  div.onclick = () => {
+    if (customDone.has(id)) { customDone.delete(id); div.classList.remove('done'); document.getElementById(id).textContent=''; }
+    else { customDone.add(id); div.classList.add('done'); document.getElementById(id).textContent='✓'; }
+    updateProgress();
+  };
+  container.appendChild(div);
+  input.value = '';
+  input.focus();
+  updateProgress();
+}
+function updateProgress() {
+  const total = document.querySelectorAll('.check-item').length;
+  const completed = document.querySelectorAll('.check-item.done').length;
+  const pct = total ? Math.round(completed / total * 100) : 0;
+  document.getElementById('prog').style.width = pct + '%';
+  document.getElementById('prog-label').textContent = completed + ' / ' + total + ' 완료';
+}
 
 // POSITIONING MAP
 function drawMap() {
