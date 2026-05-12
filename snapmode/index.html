@@ -824,17 +824,38 @@ const checks = [
 const done = new Set();
 const list = document.getElementById('checklist-list');
 checks.forEach((t, i) => {
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'border-bottom:1px solid var(--border);';
+
   const div = document.createElement('div');
   div.className = 'check-item';
-  div.innerHTML = `<div class="check-box" id="cb${i}"></div><div class="check-label">${t}</div>`;
-  div.onclick = () => {
+  div.style.borderBottom = 'none';
+  div.innerHTML = `<div class="check-box" id="cb${i}"></div><div class="check-label" style="flex:1">${t}</div><div id="note-toggle-${i}" style="font-family:var(--font-mono);font-size:10px;color:var(--border2);cursor:pointer;padding:2px 6px;transition:color .2s;user-select:none" onmouseenter="this.style.color='var(--accent)'" onmouseleave="this.style.color=document.getElementById('note-${i}').style.display!=='none'?'var(--accent)':'var(--border2)'">메모</div>`;
+
+  div.querySelector('.check-box').addEventListener('click', (e) => {
+    e.stopPropagation();
     if (done.has(i)) { done.delete(i); div.classList.remove('done'); document.getElementById('cb'+i).textContent=''; }
     else { done.add(i); div.classList.add('done'); document.getElementById('cb'+i).textContent='✓'; }
-    const pct = Math.round(done.size / checks.length * 100);
-    document.getElementById('prog').style.width = pct + '%';
-    document.getElementById('prog-label').textContent = done.size + ' / ' + checks.length + ' 완료';
-  };
-  list.appendChild(div);
+    updateProgress();
+  });
+
+  div.querySelector(`#note-toggle-${i}`).addEventListener('click', (e) => {
+    e.stopPropagation();
+    const note = document.getElementById('note-'+i);
+    const isOpen = note.style.display !== 'none';
+    note.style.display = isOpen ? 'none' : 'block';
+    e.target.style.color = isOpen ? 'var(--border2)' : 'var(--accent)';
+    if (!isOpen) note.querySelector('textarea').focus();
+  });
+
+  const noteArea = document.createElement('div');
+  noteArea.id = 'note-' + i;
+  noteArea.style.display = 'none';
+  noteArea.innerHTML = `<textarea placeholder="여기에 메모를 작성하세요..." style="width:100%;min-height:80px;background:var(--bg3);border:none;border-top:1px solid var(--border);color:var(--text);font-family:var(--font-mono);font-size:12px;padding:10px 12px;resize:vertical;outline:none;line-height:1.6;"></textarea>`;
+
+  wrap.appendChild(div);
+  wrap.appendChild(noteArea);
+  list.appendChild(wrap);
 });
 
 // CUSTOM CHECKLIST
