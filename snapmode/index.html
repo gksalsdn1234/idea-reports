@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SnapMode — AI 카메라 코치 앱</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0a;
+  --bg2: #111111;
+  --bg3: #1a1a1a;
+  --border: rgba(255,255,255,0.08);
+  --border2: rgba(255,255,255,0.15);
+  --text: #e8e6e0;
+  --muted: #888;
+  --accent: #c8f04a;
+  --accent2: #4af0c8;
+  --accent3: #f04a7a;
+  --warn: #f0c84a;
+  --font-display: 'Bebas Neue', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* NAV */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  background: rgba(10,10,10,0.85);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 2rem; height: 52px;
+}
+.nav-logo { font-family: var(--font-display); font-size: 22px; letter-spacing: 2px; color: var(--accent); }
+.nav-links { display: flex; gap: 1.5rem; }
+.nav-links a {
+  font-size: 12px; color: var(--muted); text-decoration: none;
+  letter-spacing: .05em; text-transform: uppercase;
+  transition: color .2s;
+}
+.nav-links a:hover { color: var(--text); }
+
+/* HERO */
+.hero {
+  min-height: 100vh;
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 6rem 2rem 4rem;
+  position: relative; overflow: hidden;
+}
+.hero-grid {
+  position: absolute; inset: 0; opacity: .035;
+  background-image: linear-gradient(var(--accent) 1px, transparent 1px),
+                    linear-gradient(90deg, var(--accent) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+.hero-inner { max-width: 900px; margin: 0 auto; width: 100%; position: relative; }
+.hero-eyebrow {
+  font-family: var(--font-mono); font-size: 11px; color: var(--accent);
+  letter-spacing: .15em; text-transform: uppercase; margin-bottom: 1.5rem;
+  opacity: 0; animation: fadeUp .6s .1s forwards;
+}
+.hero-title {
+  font-family: var(--font-display);
+  font-size: clamp(64px, 10vw, 120px);
+  line-height: .95; letter-spacing: 2px;
+  color: var(--text);
+  opacity: 0; animation: fadeUp .6s .2s forwards;
+}
+.hero-title span { color: var(--accent); }
+.hero-sub {
+  font-size: 17px; color: var(--muted); font-weight: 300;
+  max-width: 520px; margin-top: 1.5rem;
+  opacity: 0; animation: fadeUp .6s .3s forwards;
+}
+.hero-tags {
+  display: flex; gap: .75rem; flex-wrap: wrap; margin-top: 2rem;
+  opacity: 0; animation: fadeUp .6s .4s forwards;
+}
+.tag {
+  font-family: var(--font-mono); font-size: 11px; padding: 5px 12px;
+  border: 1px solid var(--border2); border-radius: 2px; color: var(--muted);
+  letter-spacing: .06em;
+}
+.tag.accent { border-color: var(--accent); color: var(--accent); }
+.hero-scroll {
+  position: absolute; bottom: 2rem; left: 2rem;
+  font-family: var(--font-mono); font-size: 10px; color: var(--muted);
+  letter-spacing: .1em; text-transform: uppercase;
+  display: flex; align-items: center; gap: .5rem;
+  opacity: 0; animation: fadeUp .6s .8s forwards;
+}
+.hero-scroll::before {
+  content: ''; display: block; width: 32px; height: 1px;
+  background: var(--muted);
+}
+
+/* SECTIONS */
+.section { max-width: 900px; margin: 0 auto; padding: 5rem 2rem; }
+.section-label {
+  font-family: var(--font-mono); font-size: 10px; color: var(--accent);
+  letter-spacing: .15em; text-transform: uppercase;
+  margin-bottom: 2.5rem; display: flex; align-items: center; gap: .75rem;
+}
+.section-label::after {
+  content: ''; flex: 1; height: 1px; background: var(--border2); max-width: 80px;
+}
+.section-title {
+  font-family: var(--font-display); font-size: clamp(36px, 6vw, 64px);
+  line-height: 1; letter-spacing: 1px; margin-bottom: 2rem; color: var(--text);
+}
+
+/* TABS */
+.tab-row { display: flex; gap: 0; margin-bottom: 2rem; border-bottom: 1px solid var(--border); }
+.tab-btn {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em;
+  text-transform: uppercase; padding: 10px 18px;
+  background: none; border: none; color: var(--muted);
+  cursor: pointer; transition: all .2s;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; animation: fadeIn .3s; }
+
+/* CARDS */
+.card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); }
+.card {
+  background: var(--bg2); padding: 1.5rem;
+  transition: background .2s;
+}
+.card:hover { background: var(--bg3); }
+.card-num { font-family: var(--font-mono); font-size: 10px; color: var(--accent); margin-bottom: .75rem; }
+.card-title { font-size: 14px; font-weight: 500; margin-bottom: .5rem; color: var(--text); }
+.card-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
+.card-badge {
+  display: inline-block; font-family: var(--font-mono); font-size: 10px;
+  padding: 2px 8px; margin-top: .75rem;
+  border-radius: 2px;
+}
+.badge-green { background: rgba(200,240,74,.12); color: var(--accent); }
+.badge-red { background: rgba(240,74,122,.12); color: var(--accent3); }
+.badge-yellow { background: rgba(240,200,74,.12); color: var(--warn); }
+.badge-teal { background: rgba(74,240,200,.12); color: var(--accent2); }
+
+/* COMP TABLE */
+.comp-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.comp-table th {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--muted); padding: 10px 14px;
+  text-align: left; border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+.comp-table th.hl { color: var(--accent); }
+.comp-table td {
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+  color: var(--muted); vertical-align: middle;
+}
+.comp-table td.feat { color: var(--text); font-weight: 500; }
+.comp-table td.hl { background: rgba(200,240,74,.04); }
+.comp-table tr:hover td { background: var(--bg3); }
+.comp-table tr:hover td.hl { background: rgba(200,240,74,.07); }
+.yes { color: var(--accent); font-size: 16px; }
+.no { color: #333; font-size: 16px; }
+.partial { color: var(--warn); font-size: 14px; }
+
+/* GROWTH LOOP */
+.loop-list { display: flex; flex-direction: column; gap: 0; }
+.loop-item {
+  display: flex; gap: 1.5rem; padding: 1.5rem 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: padding-left .2s;
+}
+.loop-item:hover { padding-left: .5rem; }
+.loop-item:last-child { border-bottom: none; }
+.loop-num {
+  font-family: var(--font-display); font-size: 48px; line-height: 1;
+  color: var(--border2); min-width: 48px; flex-shrink: 0;
+  transition: color .2s;
+}
+.loop-item:hover .loop-num { color: var(--accent); }
+.loop-title { font-size: 16px; font-weight: 500; margin-bottom: .4rem; color: var(--text); }
+.loop-badge {
+  font-family: var(--font-mono); font-size: 10px; padding: 2px 7px;
+  border-radius: 2px; margin-left: .5rem; vertical-align: middle;
+}
+.loop-desc { font-size: 13px; color: var(--muted); line-height: 1.7; }
+.loop-example {
+  font-family: var(--font-mono); font-size: 11px; color: var(--accent2);
+  margin-top: .5rem; padding: .5rem .75rem;
+  border-left: 2px solid var(--accent2);
+  background: rgba(74,240,200,.04);
+}
+
+/* CHAR */
+.char-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 1px; background: var(--border); margin-bottom: 1.5rem; }
+.char-card {
+  background: var(--bg2); padding: 1.25rem; text-align: center;
+  cursor: pointer; transition: all .2s; border-bottom: 3px solid transparent;
+}
+.char-card:hover, .char-card.active { background: var(--bg3); }
+.char-card.active { border-bottom-color: var(--accent); }
+.char-emoji { font-size: 28px; margin-bottom: .5rem; display: block; }
+.char-name { font-family: var(--font-mono); font-size: 12px; color: var(--text); margin-bottom: .25rem; letter-spacing: .05em; }
+.char-type { font-size: 11px; color: var(--muted); }
+.char-detail {
+  background: var(--bg2); border: 1px solid var(--border);
+  padding: 1.5rem; display: none;
+  animation: fadeIn .3s;
+}
+.char-detail.active { display: block; }
+.char-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.25rem; margin-top: 1rem; }
+.cd-col-title { font-family: var(--font-mono); font-size: 10px; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; margin-bottom: .75rem; }
+.cd-item { font-size: 12px; color: var(--muted); padding: 5px 0; border-bottom: 1px solid var(--border); line-height: 1.5; }
+.cd-item::before { content: '→ '; color: var(--accent); }
+.cd-item:last-child { border-bottom: none; }
+.char-quote {
+  font-family: var(--font-mono); font-size: 12px; color: var(--accent2);
+  padding: .75rem 1rem; border-left: 2px solid var(--accent2);
+  background: rgba(74,240,200,.04); margin-bottom: 1rem;
+}
+
+/* RETENTION */
+.ret-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); }
+.ret-card { background: var(--bg2); padding: 1.5rem; }
+.ret-icon { font-size: 20px; margin-bottom: .75rem; }
+.ret-title { font-size: 14px; font-weight: 500; margin-bottom: .5rem; color: var(--text); }
+.ret-desc { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: .75rem; }
+.ret-why { font-family: var(--font-mono); font-size: 10px; color: var(--accent); letter-spacing: .05em; }
+
+/* PERSONA */
+.persona-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px; background: var(--border); }
+.persona-col { background: var(--bg2); padding: 1.25rem; }
+.persona-title { font-size: 13px; font-weight: 500; margin-bottom: 1rem; color: var(--text); }
+.persona-item { font-size: 12px; color: var(--muted); padding: 4px 0; line-height: 1.5; }
+.persona-item::before { content: '· '; color: var(--muted); }
+
+/* MOAT */
+.moat-list { display: flex; flex-direction: column; gap: 1px; background: var(--border); }
+.moat-item {
+  background: var(--bg2); padding: 1.25rem 1.5rem;
+  display: flex; align-items: flex-start; gap: 1rem;
+  transition: background .2s;
+}
+.moat-item:hover { background: var(--bg3); }
+.moat-icon { font-size: 18px; flex-shrink: 0; margin-top: 2px; }
+.moat-title { font-size: 14px; font-weight: 500; margin-bottom: .3rem; color: var(--text); }
+.moat-desc { font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+/* CHECKLIST */
+.check-list { display: flex; flex-direction: column; gap: 0; }
+.check-item {
+  display: flex; align-items: flex-start; gap: .75rem;
+  padding: .9rem 0; border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.check-item:last-child { border-bottom: none; }
+.check-box {
+  width: 18px; height: 18px; border: 1px solid var(--border2);
+  flex-shrink: 0; margin-top: 1px; display: flex; align-items: center;
+  justify-content: center; font-size: 11px; transition: all .15s;
+  background: var(--bg);
+}
+.check-item.done .check-box {
+  background: var(--accent); border-color: var(--accent); color: var(--bg);
+}
+.check-label { font-size: 13px; color: var(--muted); line-height: 1.5; transition: opacity .15s; }
+.check-item.done .check-label { opacity: .4; text-decoration: line-through; }
+.progress-bar {
+  height: 2px; background: var(--border);
+  border-radius: 1px; margin-bottom: 1.5rem; overflow: hidden;
+}
+.progress-fill {
+  height: 100%; background: var(--accent);
+  transition: width .3s; border-radius: 1px;
+}
+.progress-label { font-family: var(--font-mono); font-size: 11px; color: var(--muted); margin-bottom: 1rem; }
+
+/* REVENUE */
+.rev-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap: 1px; background: var(--border); margin-bottom: 1.5rem; }
+.rev-card { background: var(--bg2); padding: 1.25rem; }
+.rev-label { font-family: var(--font-mono); font-size: 10px; color: var(--muted); margin-bottom: .4rem; text-transform: uppercase; letter-spacing: .08em; }
+.rev-value { font-family: var(--font-display); font-size: 32px; color: var(--accent); letter-spacing: 1px; }
+.rev-sub { font-size: 12px; color: var(--muted); margin-top: .25rem; }
+
+/* QUESTIONS */
+.q-list { display: flex; flex-direction: column; gap: 0; }
+.q-item {
+  display: flex; align-items: baseline; gap: 1rem;
+  padding: .9rem 0; border-bottom: 1px solid var(--border);
+  font-size: 13px; color: var(--muted);
+}
+.q-item:last-child { border-bottom: none; }
+.q-num { font-family: var(--font-mono); font-size: 10px; color: var(--border2); min-width: 24px; flex-shrink: 0; }
+
+/* DIVIDER */
+.full-divider { border: none; border-top: 1px solid var(--border); }
+.section-divider { max-width: 900px; margin: 0 auto; padding: 0 2rem; }
+
+/* POSITIONING MAP */
+#posmap {
+  width: 100%; height: 320px;
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  position: relative; overflow: hidden;
+}
+.map-label {
+  position: absolute; font-family: var(--font-mono); font-size: 10px;
+  color: var(--muted); letter-spacing: .08em; text-transform: uppercase;
+}
+.map-dot {
+  position: absolute; border-radius: 50%;
+  transform: translate(-50%,-50%);
+  cursor: default;
+}
+.map-dot-label {
+  position: absolute; font-family: var(--font-mono); font-size: 10px;
+  color: var(--muted); white-space: nowrap;
+  transform: translateX(-50%);
+}
+.axis-h { position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: var(--border2); }
+.axis-v { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--border2); }
+
+/* ROADMAP */
+.road-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px; background: var(--border); }
+.road-col { background: var(--bg2); padding: 1.25rem; }
+.road-phase { font-family: var(--font-mono); font-size: 10px; color: var(--accent); margin-bottom: .25rem; letter-spacing: .1em; }
+.road-title { font-size: 14px; font-weight: 500; margin-bottom: 1rem; color: var(--text); }
+.road-item { font-size: 12px; color: var(--muted); padding: 3px 0; }
+.road-item::before { content: '→ '; color: var(--border2); }
+
+/* FOOTER */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 2rem; text-align: center;
+  font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+  letter-spacing: .08em;
+}
+
+/* ANIMATIONS */
+@keyframes fadeUp {
+  from { opacity:0; transform: translateY(16px); }
+  to { opacity:1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity:0; } to { opacity:1; }
+}
+
+/* SCROLLREVEAL */
+.reveal { opacity:0; transform:translateY(20px); transition: opacity .5s, transform .5s; }
+.reveal.visible { opacity:1; transform:translateY(0); }
+
+@media (max-width: 640px) {
+  .char-grid { grid-template-columns: 1fr 1fr; }
+  .char-detail-grid { grid-template-columns: 1fr; }
+  .road-grid { grid-template-columns: 1fr; }
+  .ret-grid { grid-template-columns: 1fr; }
+  .persona-grid { grid-template-columns: 1fr; }
+  .nav-links { display: none; }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">SNAPMODE</div>
+  <div class="nav-links">
+    <a href="#overview">개요</a>
+    <a href="#competition">경쟁사</a>
+    <a href="#growth">성장루프</a>
+    <a href="#characters">캐릭터</a>
+    <a href="#revenue">수익</a>
+    <a href="#checklist">체크리스트</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="overview">
+  <div class="hero-grid"></div>
+  <div class="hero-inner">
+    <div class="hero-eyebrow">아이디어 리포트 v1.0 — 2026.05</div>
+    <h1 class="hero-title">SNAP<span>MODE</span></h1>
+    <p class="hero-sub">AI와 함께 사진 찍는 실력을 기르는 카메라 앱 — 찍을수록 성장하는 구조</p>
+    <div class="hero-tags">
+      <span class="tag accent">카메라 Duolingo</span>
+      <span class="tag">iOS / Android</span>
+      <span class="tag">Freemium</span>
+      <span class="tag">북미 우선</span>
+      <span class="tag">Flutter</span>
+    </div>
+  </div>
+  <div class="hero-scroll">scroll to explore</div>
+</section>
+
+<hr class="full-divider">
+
+<!-- OVERVIEW -->
+<section class="section reveal" id="positioning">
+  <div class="section-label">01 — 포지셔닝</div>
+  <h2 class="section-title">공백을 찾았다</h2>
+  <div class="card-grid" style="margin-bottom:2rem">
+    <div class="card">
+      <div class="card-num">문제</div>
+      <div class="card-title">좋은 카메라 앱은 많다</div>
+      <div class="card-desc">근데 아무도 "이 설정이 왜 좋은지"를 초보자 언어로 설명해주지 않는다. 설정 도구는 넘치고, 코치는 없다.</div>
+    </div>
+    <div class="card">
+      <div class="card-num">솔루션</div>
+      <div class="card-title">AI 카메라 코치</div>
+      <div class="card-desc">찍기 전 가이드 + 찍고 나서 리뷰. 설정값과 이유를 동시에 알려주고, 찍을수록 캐릭터와 함께 실력이 쌓인다.</div>
+    </div>
+    <div class="card">
+      <div class="card-num">포지션</div>
+      <div class="card-title">카메라 Duolingo</div>
+      <div class="card-desc">Halide는 도구, PhotoPills는 플래너. SnapMode는 코치 — 초보자 + 교육·가이드 사분면에 경쟁자가 없다.</div>
+      <span class="card-badge badge-green">블루오션</span>
+    </div>
+  </div>
+
+  <div class="tab-row">
+    <button class="tab-btn active" onclick="showTab('pos','problem')">문제 상세</button>
+    <button class="tab-btn" onclick="showTab('pos','solution')">솔루션</button>
+    <button class="tab-btn" onclick="showTab('pos','slogan')">슬로건 후보</button>
+  </div>
+  <div id="pos-problem" class="tab-pane active">
+    <div class="card-grid">
+      <div class="card"><div class="card-title">설정 모름</div><div class="card-desc">ISO, 셔터속도, 화이트밸런스 — 매번 검색해야 함</div></div>
+      <div class="card"><div class="card-title">포기 반복</div><div class="card-desc">시네마틱·별사진 등 고급 촬영을 시도하다 결과가 나빠 포기</div></div>
+      <div class="card"><div class="card-title">이유 없는 추천</div><div class="card-desc">기존 앱들은 수치만 줌. "왜 이 설정인지" 아무도 설명 안 함</div></div>
+      <div class="card"><div class="card-title">성장 안 보임</div><div class="card-desc">3년을 찍어도 내가 얼마나 나아졌는지 모름</div></div>
+    </div>
+  </div>
+  <div id="pos-solution" class="tab-pane">
+    <div class="card-grid">
+      <div class="card"><div class="card-num">Before</div><div class="card-title">찍기 전 AI 브리핑</div><div class="card-desc">상황 감지 → ISO·셔터·화이트밸런스 수치 추천 + 이유 설명</div></div>
+      <div class="card"><div class="card-num">During</div><div class="card-title">실시간 힌트</div><div class="card-desc">컴포지션 가이드라인 오버레이, 경량 피드백 (끄기 가능)</div></div>
+      <div class="card"><div class="card-num">After</div><div class="card-title">AI 사진 리뷰</div><div class="card-desc">촬영된 사진 분석 → "노출은 완벽한데 초점이 약간 흐려요" 피드백</div></div>
+      <div class="card"><div class="card-num">History</div><div class="card-title">성장 히스토리</div><div class="card-desc">포트폴리오 타임라인 + 월별 성장 리포트 + 약점 패턴 감지</div></div>
+    </div>
+  </div>
+  <div id="pos-slogan" class="tab-pane">
+    <div class="card-grid">
+      <div class="card"><div class="card-title">"AI 카메라 코치 — 찍을수록 실력이 늘어요"</div><div class="card-desc">성장 강조 — 한국어 메인 슬로건 후보</div><span class="card-badge badge-green">추천</span></div>
+      <div class="card"><div class="card-title">"Your AI camera coach"</div><div class="card-desc">글로벌 영문 슬로건 — 간결하고 포지션 명확</div><span class="card-badge badge-teal">글로벌용</span></div>
+      <div class="card"><div class="card-title">"설정 말고 결과를 선택하세요"</div><div class="card-desc">목적 중심 강조 — App Store 서브 카피용</div></div>
+    </div>
+  </div>
+</section>
+
+<hr class="full-divider">
+
+<!-- COMPETITION -->
+<section class="section reveal" id="competition">
+  <div class="section-label">02 — 경쟁사 분석</div>
+  <h2 class="section-title">지도를 그렸다</h2>
+
+  <div class="tab-row">
+    <button class="tab-btn active" onclick="showTab('comp','matrix')">기능 비교표</button>
+    <button class="tab-btn" onclick="showTab('comp','map')">포지셔닝 맵</button>
+    <button class="tab-btn" onclick="showTab('comp','moat')">핵심 차별점</button>
+    <button class="tab-btn" onclick="showTab('comp','risk')">플랫폼 리스크</button>
+  </div>
+
+  <div id="comp-matrix" class="tab-pane active">
+    <div style="overflow-x:auto">
+    <table class="comp-table">
+      <thead>
+        <tr>
+          <th>기능</th>
+          <th class="hl">SnapMode</th>
+          <th>Halide</th>
+          <th>Hydra 2</th>
+          <th>PhotoPills</th>
+          <th>Apple 카메라</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="feat">실시간 환경 감지</td><td class="hl"><span class="yes">●</span></td><td><span class="partial">△</span></td><td><span class="partial">△</span></td><td><span class="no">✕</span></td><td><span class="partial">△</span></td></tr>
+        <tr><td class="feat">설정값 수치 추천</td><td class="hl"><span class="yes">●</span></td><td><span class="no">✕</span></td><td><span class="no">✕</span></td><td><span class="no">✕</span></td><td><span class="no">✕</span></td></tr>
+        <tr><td class="feat">설정 이유 설명</td><td class="hl"><span class="yes">●</span></td><td><span class="no">✕</span></td><td><span class="no">✕</span></td><td><span class="no">✕</span></td><td><span class="no">✕</span></td></tr>
+        <tr><td class="feat">시네마틱 모드</td><td class="hl"><span class="yes">●</span></td><td><span class="no">✕</span></td><td><span class="no">✕</span></td><td><span class="no">✕</span></td><td><span class="partial">△</span></td></tr>
+        <tr><td class="feat">별사진 특화 가이드</td><td class="hl"><span class="yes">●</span></td><td><span class="no">✕</span></td><td><span class="partial">△</span></td><td><span class="yes">●</span></td><td><span class="no">✕</span></td></tr>
+        <tr><td class="feat">초보자 교육 레이어</td><td class="hl"><span class="yes">●</span></td><td><span class="no">✕</span></td><td><span class="no">✕</span></td><td><span class="no">✕</span></td><td><span class="no">✕</span></td></tr>
+        <tr><td class="feat">성장 히스토리</td><td class="hl"><span class="yes">●</span></td><td><span class="no">✕</span></td><td><span class="no">✕</span></td><td><span class="no">✕</span></td><td><span class="no">✕</span></td></tr>
+        <tr><td class="feat">Freemium 구독</td><td class="hl"><span class="yes">●</span></td><td><span class="no">✕</span></td><td><span class="no">✕</span></td><td><span class="no">✕</span></td><td><span class="yes">●</span></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div style="margin-top:1rem;font-family:var(--font-mono);font-size:11px;color:var(--muted)">● 완전 지원 &nbsp;△ 일부 지원 &nbsp;✕ 없음</div>
+  </div>
+
+  <div id="comp-map" class="tab-pane">
+    <div id="posmap">
+      <div class="axis-h"></div>
+      <div class="axis-v"></div>
+      <div class="map-label" style="top:8px;left:50%;transform:translateX(-50%)">촬영 도구</div>
+      <div class="map-label" style="bottom:8px;left:50%;transform:translateX(-50%)">교육·가이드</div>
+      <div class="map-label" style="left:8px;top:50%;transform:translateY(-50%)">초보자</div>
+      <div class="map-label" style="right:8px;top:50%;transform:translateY(-50%)">전문가</div>
+    </div>
+    <div style="margin-top:1rem;font-size:12px;color:var(--muted)">★ SnapMode가 노리는 공백 — 초보자 + 교육·가이드 사분면에 경쟁자 없음</div>
+  </div>
+
+  <div id="comp-moat" class="tab-pane">
+    <div class="moat-list">
+      <div class="moat-item"><div class="moat-icon">💬</div><div><div class="moat-title">설정 이유를 말해주는 유일한 앱</div><div class="moat-desc">"ISO 3200 추천" 끝이 아니라 "지금 빛이 부족해서 센서 감도를 높여야 해, 대신 노이즈가 생길 수 있어"까지. 학습 루프가 생기면 이탈률이 낮아짐.</div></div></div>
+      <div class="moat-item"><div class="moat-icon">🎯</div><div><div class="moat-title">촬영 목적 중심 UX</div><div class="moat-desc">씬 감지가 아닌 "오늘 뭘 찍고 싶어?" 먼저 묻는 구조. Cinematic, Astrophoto, Golden Hour 등 결과물 중심 선택. 기존 앱은 기술 중심, SnapMode는 결과물 중심.</div></div></div>
+      <div class="moat-item"><div class="moat-icon">🌟</div><div><div class="moat-title">별사진 + GPS/날씨 통합</div><div class="moat-desc">PhotoPills는 위치만, SnapMode는 위치 + 날씨 + 현재 폰 카메라 스펙에 맞춘 설정까지. S24 Ultra vs iPhone 16 Pro 각각 다른 추천값.</div></div></div>
+      <div class="moat-item"><div class="moat-icon">📈</div><div><div class="moat-title">실력 성장 추적</div><div class="moat-desc">설정 히스토리 + "지난번보다 나아진 점" 피드백. 단순 도구가 아닌 카메라 실력 향상 앱으로 포지셔닝. 장기 리텐션 드라이버.</div></div></div>
+      <div class="moat-item"><div class="moat-icon">📱</div><div><div class="moat-title">기기별 최적화 추천 (장기 해자)</div><div class="moat-desc">Samsung Galaxy, iPhone 16 Pro, Pixel 9 각각 센서 스펙이 다름. 같은 상황이라도 기기별로 다른 설정값 추천. 이 DB가 쌓일수록 경쟁 복제가 어려워짐.</div></div></div>
+    </div>
+  </div>
+
+  <div id="comp-risk" class="tab-pane">
+    <div class="card" style="border-left:3px solid var(--accent3);margin-bottom:1rem">
+      <div class="card-num">⚠ 플랫폼 리스크</div>
+      <div class="card-title">Apple iOS 27 — Siri 카메라 모드</div>
+      <div class="card-desc" style="margin-top:.5rem">Apple이 iOS 27에서 Siri 카메라 모드 + Visual Intelligence 통합 발표. 기본 씬 감지 기능과 일부 겹칠 수 있음.</div>
+    </div>
+    <div class="card-grid">
+      <div class="card"><div class="card-title">대응 1</div><div class="card-desc">교육 레이어 강화 — "왜 이 설정인가"는 Apple이 복제하기 어려운 영역</div></div>
+      <div class="card"><div class="card-title">대응 2</div><div class="card-desc">초고급 모드 심화 — 별사진, 시네마틱 룩, 기기별 DB</div></div>
+      <div class="card"><div class="card-title">대응 3</div><div class="card-desc">Android 동시 공략 — iOS 플랫폼 의존도 낮추기</div></div>
+    </div>
+  </div>
+</section>
+
+<hr class="full-divider">
+
+<!-- GROWTH LOOP -->
+<section class="section reveal" id="growth">
+  <div class="section-label">03 — 성장 루프</div>
+  <h2 class="section-title">찍을수록 쌓인다</h2>
+  <div class="loop-list">
+    <div class="loop-item">
+      <div class="loop-num">1</div>
+      <div>
+        <div class="loop-title">찍기 전 — AI 브리핑 <span class="loop-badge badge-teal">Before</span></div>
+        <div class="loop-desc">상황(시간대·빛·피사체) 감지 → "지금 골든아워 직전이에요. 이렇게 설정하면 따뜻한 시네마틱 톤 나와요" + ISO·셔터 수치 추천</div>
+        <div class="loop-example">→ 유저는 설정을 따라하면서 이유도 함께 학습</div>
+      </div>
+    </div>
+    <div class="loop-item">
+      <div class="loop-num">2</div>
+      <div>
+        <div class="loop-title">찍는 중 — 실시간 힌트 <span class="loop-badge badge-yellow">During</span></div>
+        <div class="loop-desc">컴포지션 가이드라인 오버레이, "피사체가 프레임 중앙에 너무 가까워요" 같은 경량 피드백. 방해 최소화, 옵션으로 끄기 가능.</div>
+        <div class="loop-example">→ 캐릭터가 작은 말풍선으로 힌트 전달</div>
+      </div>
+    </div>
+    <div class="loop-item">
+      <div class="loop-num">3</div>
+      <div>
+        <div class="loop-title">찍고 나서 — AI 사진 리뷰 <span class="loop-badge badge-green">After</span></div>
+        <div class="loop-desc">촬영된 사진을 AI가 분석 → "노출은 완벽한데 초점이 약간 흐려요. 다음엔 탭 포커스 써보세요" 같은 구체적 피드백</div>
+        <div class="loop-example">"이번 별사진, 저번보다 노이즈 30% 줄었어요! ISO를 낮춘 게 맞았네요 🎯"</div>
+      </div>
+    </div>
+    <div class="loop-item">
+      <div class="loop-num">4</div>
+      <div>
+        <div class="loop-title">포트폴리오 누적 <span class="loop-badge" style="background:rgba(240,74,122,.12);color:var(--accent3)">History</span></div>
+        <div class="loop-desc">촬영 기록이 타임라인으로 쌓임. 월별 "가장 성장한 부분", 자주 찍는 장르 분석, 약점 패턴 감지.</div>
+        <div class="loop-example">"야경 사진 10장 중 7장이 흔들렸어요 → 삼각대 or 셔터 설정 가이드 연결"</div>
+      </div>
+    </div>
+    <div class="loop-item">
+      <div class="loop-num">5</div>
+      <div>
+        <div class="loop-title">캐릭터 성장 + 커뮤니티 <span class="loop-badge" style="background:rgba(200,240,74,.12);color:var(--accent)">Social</span></div>
+        <div class="loop-desc">유저 실력이 오를수록 동반 캐릭터도 레벨업 → 장비·스킬 언락. 커뮤니티에 사진 공유 시 설정값도 같이 공유.</div>
+        <div class="loop-example">→ 다시 1번으로: 커뮤니티 피드 보다가 새 촬영 욕구 발생</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="full-divider">
+
+<!-- CHARACTERS -->
+<section class="section reveal" id="characters">
+  <div class="section-label">04 — 동반 캐릭터</div>
+  <h2 class="section-title">캐릭터와 함께 성장</h2>
+  <p style="color:var(--muted);font-size:14px;margin-bottom:2rem">캐릭터를 선택하면 레벨업 조건과 보상을 볼 수 있어요</p>
+
+  <div class="char-grid">
+    <div class="char-card" onclick="selectChar('lens')">
+      <span class="char-emoji">🔭</span>
+      <div class="char-name">LENS</div>
+      <div class="char-type">이성적 코치형</div>
+    </div>
+    <div class="char-card" onclick="selectChar('pixel')">
+      <span class="char-emoji">✨</span>
+      <div class="char-name">PIXEL</div>
+      <div class="char-type">열정 응원형</div>
+    </div>
+    <div class="char-card" onclick="selectChar('shad')">
+      <span class="char-emoji">🌙</span>
+      <div class="char-name">SHAD</div>
+      <div class="char-type">감성 아티스트형</div>
+    </div>
+    <div class="char-card" onclick="selectChar('nova')">
+      <span class="char-emoji">🌟</span>
+      <div class="char-name">NOVA</div>
+      <div class="char-type">천문·야경 전문형</div>
+    </div>
+  </div>
+
+  <div class="char-detail" id="char-detail-lens">
+    <div class="char-quote">"ISO 1600이 이 상황의 최적 계산값이야"</div>
+    <div class="char-detail-grid">
+      <div><div class="cd-col-title">레벨업 조건</div><div class="cd-item">사진 20장 촬영</div><div class="cd-item">수동 모드 5회 사용</div><div class="cd-item">같은 장소 재촬영 비교</div></div>
+      <div><div class="cd-col-title">언락 보상</div><div class="cd-item">고급 노출 분석 탭</div><div class="cd-item">기기별 최적화 DB 접근</div><div class="cd-item">RAW 설정 추천 모드</div></div>
+      <div><div class="cd-col-title">성격 변화</div><div class="cd-item">Lv1: 짧고 정확한 분석</div><div class="cd-item">Lv3: 예측 피드백 제공</div><div class="cd-item">Lv5: 개인 패턴 학습</div></div>
+    </div>
+  </div>
+  <div class="char-detail" id="char-detail-pixel">
+    <div class="char-quote">"와 이번 샷 진짜 감각 있는데?! 한 번 더 해봐!"</div>
+    <div class="char-detail-grid">
+      <div><div class="cd-col-title">레벨업 조건</div><div class="cd-item">챌린지 3개 완료</div><div class="cd-item">커뮤니티 공유 5회</div><div class="cd-item">스트릭 7일 달성</div></div>
+      <div><div class="cd-col-title">언락 보상</div><div class="cd-item">특별 챌린지 테마</div><div class="cd-item">커뮤니티 배지 획득</div><div class="cd-item">콜라보 챌린지 초대</div></div>
+      <div><div class="cd-col-title">성격 변화</div><div class="cd-item">Lv1: 기본 응원 멘트</div><div class="cd-item">Lv3: 유저 스타일 파악</div><div class="cd-item">Lv5: 맞춤형 격려 패턴</div></div>
+    </div>
+  </div>
+  <div class="char-detail" id="char-detail-shad">
+    <div class="char-quote">"지금 이 그림자 앵글, 놓치면 아까워"</div>
+    <div class="char-detail-grid">
+      <div><div class="cd-col-title">레벨업 조건</div><div class="cd-item">골든아워·블루아워 촬영</div><div class="cd-item">역광·실루엣 시도</div><div class="cd-item">흑백 모드 3회 사용</div></div>
+      <div><div class="cd-col-title">언락 보상</div><div class="cd-item">감성 필터 프리셋 팩</div><div class="cd-item">라이팅 분석 상세 탭</div><div class="cd-item">무드 분류 갤러리 뷰</div></div>
+      <div><div class="cd-col-title">성격 변화</div><div class="cd-item">Lv1: 빛 방향 힌트</div><div class="cd-item">Lv3: 분위기 언어 깊어짐</div><div class="cd-item">Lv5: 시그니처 무드 정의</div></div>
+    </div>
+  </div>
+  <div class="char-detail" id="char-detail-nova">
+    <div class="char-quote">"밀키웨이 뜨는 시간까지 32분 남았어"</div>
+    <div class="char-detail-grid">
+      <div><div class="cd-col-title">레벨업 조건</div><div class="cd-item">야경 사진 5장</div><div class="cd-item">별사진 모드 첫 사용</div><div class="cd-item">GPS 다크스팟 방문</div></div>
+      <div><div class="cd-col-title">언락 보상</div><div class="cd-item">밀키웨이 타이밍 알림</div><div class="cd-item">고급 천문 달력 연동</div><div class="cd-item">별자리 오버레이 언락</div></div>
+      <div><div class="cd-col-title">성격 변화</div><div class="cd-item">Lv1: 기본 야경 팁</div><div class="cd-item">Lv3: 위치별 하늘 데이터</div><div class="cd-item">Lv5: 개인 천문 일지</div></div>
+    </div>
+  </div>
+
+  <div style="margin-top:2.5rem">
+    <div class="section-label" style="margin-bottom:1.5rem">리텐션 메카닉</div>
+    <div class="ret-grid">
+      <div class="ret-card"><div class="ret-icon">📊</div><div class="ret-title">포트폴리오 타임라인</div><div class="ret-desc">내 사진이 시간순으로 쌓이고, AI가 월별 성장 리포트 생성. 삭제하면 히스토리가 사라짐.</div><div class="ret-why">WHY → 데이터 락인</div></div>
+      <div class="ret-card"><div class="ret-icon">🏆</div><div class="ret-title">촬영 챌린지</div><div class="ret-desc">주간 챌린지: "이번 주 골든아워 3장 찍기". 완료 시 캐릭터 아이템 언락.</div><div class="ret-why">WHY → 주 1회 앱 여는 트리거</div></div>
+      <div class="ret-card"><div class="ret-icon">👥</div><div class="ret-title">설정값 공유 피드</div><div class="ret-desc">사진 + 촬영 설정값 같이 공유. "ISO 800, f/1.8, 1/60s로 찍었어요".</div><div class="ret-why">WHY → 소셜 비교 + 학습 동기</div></div>
+      <div class="ret-card"><div class="ret-icon">🔥</div><div class="ret-title">촬영 스트릭</div><div class="ret-desc">스트릭 조건 = "앱 실행"이 아닌 "실제 촬영 1장". 진짜 습관 형성.</div><div class="ret-why">WHY → 스트릭 끊기 싫어서 밖에 나감</div></div>
+    </div>
+  </div>
+
+  <div style="margin-top:2.5rem">
+    <div class="section-label" style="margin-bottom:1.5rem">유저 성향별 경험</div>
+    <div class="persona-grid">
+      <div class="persona-col">
+        <div class="persona-title">📊 분석형</div>
+        <div class="persona-item">수치 히트맵으로 성장 확인</div>
+        <div class="persona-item">촬영 데이터 CSV 내보내기</div>
+        <div class="persona-item">렌즈 캐릭터 선호</div>
+        <div class="persona-item">기술 용어로 설명</div>
+        <div class="persona-item">챌린지보다 통계 집착</div>
+      </div>
+      <div class="persona-col">
+        <div class="persona-title">⚖️ 균형형</div>
+        <div class="persona-item">월별 성장 리포트 중심</div>
+        <div class="persona-item">챌린지 + 커뮤니티 적당히</div>
+        <div class="persona-item">어떤 캐릭터든 무난</div>
+        <div class="persona-item">쉬운 언어 + 수치 병행</div>
+        <div class="persona-item">스트릭 신경 씀</div>
+      </div>
+      <div class="persona-col">
+        <div class="persona-title">🎨 감성형</div>
+        <div class="persona-item">포트폴리오 비주얼 갤러리</div>
+        <div class="persona-item">커뮤니티 공유 메인</div>
+        <div class="persona-item">섀도·픽셀 선호</div>
+        <div class="persona-item">수치보다 "분위기" 언어</div>
+        <div class="persona-item">챌린지 테마 중심</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="full-divider">
+
+<!-- REVENUE -->
+<section class="section reveal" id="revenue">
+  <div class="section-label">05 — 수익 모델</div>
+  <h2 class="section-title">구조를 잡았다</h2>
+  <div class="rev-grid">
+    <div class="rev-card"><div class="rev-label">월간 구독</div><div class="rev-value">$2.99</div><div class="rev-sub">7일 무료 체험 포함</div></div>
+    <div class="rev-card"><div class="rev-label">연간 구독</div><div class="rev-value">$19.99</div><div class="rev-sub">월 환산 $1.67 — 44% 할인</div></div>
+    <div class="rev-card"><div class="rev-label">전환율 목표</div><div class="rev-value">3–5%</div><div class="rev-sub">업계 평균 교육앱 기준</div></div>
+    <div class="rev-card"><div class="rev-label">목표</div><div class="rev-value">MRR</div><div class="rev-sub">군 전역 전 수동 소득 확보</div></div>
+  </div>
+  <div class="card-grid">
+    <div class="card"><div class="card-num">부수 수익 1</div><div class="card-title">카메라 장비 어필리에이트</div><div class="card-desc">앱 내 추천 장비 링크 — 구매 시 커미션</div></div>
+    <div class="card"><div class="card-num">부수 수익 2</div><div class="card-title">고급 모드 팩</div><div class="card-desc">일회성 구매 옵션 — 별사진 팩, 시네마틱 팩 등</div></div>
+    <div class="card"><div class="card-num">장기 수익</div><div class="card-title">크리에이터 프리셋 마켓</div><div class="card-desc">유저가 만든 설정 프리셋 판매 — 플랫폼 수수료</div><span class="card-badge badge-yellow">장기 로드맵</span></div>
+  </div>
+</section>
+
+<hr class="full-divider">
+
+<!-- ROADMAP -->
+<section class="section reveal" id="roadmap">
+  <div class="section-label">06 — 개발 로드맵</div>
+  <h2 class="section-title">지금 여기서부터</h2>
+  <div class="road-grid">
+    <div class="road-col">
+      <div class="road-phase">PHASE 1 · 1–2주</div>
+      <div class="road-title">아이디어 확정</div>
+      <div class="road-item">기능 스펙 문서화</div>
+      <div class="road-item">경쟁앱 5개 분석</div>
+      <div class="road-item">유저 인터뷰 5명</div>
+      <div class="road-item">iOS 카메라 API 범위 확인</div>
+    </div>
+    <div class="road-col">
+      <div class="road-phase">PHASE 2 · 3–6주</div>
+      <div class="road-title">MVP 개발</div>
+      <div class="road-item">Flutter 카메라 UI</div>
+      <div class="road-item">AI 감지 모델 연동</div>
+      <div class="road-item">3가지 핵심 모드</div>
+      <div class="road-item">캐릭터 기본 버전</div>
+    </div>
+    <div class="road-col">
+      <div class="road-phase">PHASE 3 · 7주+</div>
+      <div class="road-title">런치 & 수익화</div>
+      <div class="road-item">TestFlight 베타 배포</div>
+      <div class="road-item">App Store 제출</div>
+      <div class="road-item">구독 결제 연동</div>
+      <div class="road-item">인스타 빌딩인퍼블릭 시작</div>
+    </div>
+  </div>
+</section>
+
+<hr class="full-divider">
+
+<!-- CHECKLIST -->
+<section class="section reveal" id="checklist">
+  <div class="section-label">07 — 검증 체크리스트</div>
+  <h2 class="section-title">지금 당장</h2>
+  <div class="progress-bar"><div class="progress-fill" id="prog" style="width:0%"></div></div>
+  <div class="progress-label" id="prog-label">0 / 8 완료</div>
+  <div class="check-list" id="checklist-list"></div>
+
+  <div style="margin-top:3rem">
+    <div class="section-label" style="margin-bottom:1.5rem">미결 질문</div>
+    <div class="q-list">
+      <div class="q-item"><div class="q-num">01</div><div>앱 이름 확정 (SnapMode는 임시)</div></div>
+      <div class="q-item"><div class="q-num">02</div><div>AI 엔진 자체 개발 vs. 기존 CV API 활용 여부</div></div>
+      <div class="q-item"><div class="q-num">03</div><div>iOS 우선 vs. Android 동시 출시</div></div>
+      <div class="q-item"><div class="q-num">04</div><div>카메라 API 접근 권한 — 제조사별 제약 범위 파악 필요</div></div>
+      <div class="q-item"><div class="q-num">05</div><div>별사진 모드: GPS + 날씨 API 연동 복잡도</div></div>
+      <div class="q-item"><div class="q-num">06</div><div>군 복무 중 앱 유지/운영 방식</div></div>
+      <div class="q-item"><div class="q-num">07</div><div>캐릭터 디자인 외주 vs. 직접 제작</div></div>
+      <div class="q-item"><div class="q-num">08</div><div>커뮤니티 기능 MVP 포함 여부</div></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  SnapMode Business Plan Report · Generated with Claude · May 2026
+</footer>
+
+<script>
+// TABS
+function showTab(group, id) {
+  document.querySelectorAll(`[id^="${group}-"]`).forEach(p => p.classList.remove('active'));
+  document.getElementById(`${group}-${id}`).classList.add('active');
+  const btns = document.querySelectorAll(`[onclick^="showTab('${group}'"]`);
+  btns.forEach((b, i) => {
+    b.classList.remove('active');
+    if (b.getAttribute('onclick') === `showTab('${group}','${id}')`) b.classList.add('active');
+  });
+}
+
+// CHARACTERS
+function selectChar(key) {
+  document.querySelectorAll('.char-card').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.char-detail').forEach(d => d.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.getElementById('char-detail-' + key).classList.add('active');
+}
+
+// CHECKLIST
+const checks = [
+  "경쟁앱 5개 직접 써보고 단점 정리",
+  "잠재 유저 5명에게 '이 앱 쓸 것 같아?' 물어보기",
+  "iOS 카메라 API 커스텀 설정 가능 범위 확인",
+  "Android 동일 확인 (제조사별 차이)",
+  "별사진/시네마틱 모드 기술 스펙 초안 작성",
+  "유사 앱 App Store 리뷰 100개 분석 (페인포인트 추출)",
+  "MVP 기능 3개로 좁히기",
+  "App Store 수익화 정책 확인 (구독 수수료 등)"
+];
+const done = new Set();
+const list = document.getElementById('checklist-list');
+checks.forEach((t, i) => {
+  const div = document.createElement('div');
+  div.className = 'check-item';
+  div.innerHTML = `<div class="check-box" id="cb${i}"></div><div class="check-label">${t}</div>`;
+  div.onclick = () => {
+    if (done.has(i)) { done.delete(i); div.classList.remove('done'); document.getElementById('cb'+i).textContent=''; }
+    else { done.add(i); div.classList.add('done'); document.getElementById('cb'+i).textContent='✓'; }
+    const pct = Math.round(done.size / checks.length * 100);
+    document.getElementById('prog').style.width = pct + '%';
+    document.getElementById('prog-label').textContent = done.size + ' / ' + checks.length + ' 완료';
+  };
+  list.appendChild(div);
+});
+
+// POSITIONING MAP
+function drawMap() {
+  const el = document.getElementById('posmap');
+  const W = el.offsetWidth, H = el.offsetHeight;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  canvas.style.position = 'absolute'; canvas.style.inset = '0';
+  el.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  const dots = [
+    {x:.83,y:.18,label:'Halide',col:'#555'},
+    {x:.72,y:.25,label:'Hydra 2',col:'#555'},
+    {x:.68,y:.22,label:'ProCamera',col:'#555'},
+    {x:.70,y:.12,label:'PhotoPills',col:'#555'},
+    {x:.52,y:.42,label:'Apple Cam',col:'#555'},
+    {x:.22,y:.75,label:'★ SnapMode',col:'#c8f04a',us:true},
+  ];
+  dots.forEach(d => {
+    const px = d.x * W, py = d.y * H;
+    ctx.beginPath();
+    ctx.arc(px, py, d.us ? 9 : 5, 0, Math.PI * 2);
+    ctx.fillStyle = d.col;
+    if (d.us) { ctx.shadowColor = '#c8f04a'; ctx.shadowBlur = 18; }
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = d.col;
+    ctx.font = d.us ? '500 11px DM Mono, monospace' : '10px DM Mono, monospace';
+    ctx.fillText(d.label, px + 13, py + 4);
+  });
+}
+window.addEventListener('load', drawMap);
+
+// SCROLL REVEAL
+const revealEls = document.querySelectorAll('.reveal');
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+revealEls.forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
